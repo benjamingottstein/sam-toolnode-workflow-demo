@@ -1,0 +1,12 @@
+kind: manifest
+name: Northwind-Shipment-Enricher
+description: Enriches a bare shipment event with customer and carrier master data from a REST API and republishes the enriched event on the mesh.
+target:
+  name: desktop
+resources:
+  connectors:
+  - northwind-master-data
+  workflows:
+  - ShipmentEnricher
+  entrypoints:
+  - ShipmentEvents

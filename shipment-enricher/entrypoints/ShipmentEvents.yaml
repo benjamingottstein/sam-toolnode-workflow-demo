@@ -1,0 +1,38 @@
+kind: entrypoint
+name: ShipmentEvents
+description: Subscribes to Northwind shipment created events, runs ShipmentEnricher and republishes the enriched event - or the rejection - on the mesh.
+spec:
+  type: event_mesh
+  deploy: true
+  values:
+    # Same broker as the SAP and trade workshop demos; values come from their .env file.
+    broker_url: ${SHIPMENT_BROKER_URL}
+    broker_vpn: ${SHIPMENT_BROKER_VPN}
+    broker_username: ${SHIPMENT_BROKER_USERNAME}
+    broker_password: ${SHIPMENT_BROKER_PASSWORD}
+    tls_skip_verify: 'false'
+    event_rules:
+    - name: shipment_created
+      subscriptions:
+      - topic: northwind/tms/shipment/created/v1/>
+      messageFormat: json
+      targetWorkflowName: ShipmentEnricher
+      inputExpression: "input.payload"
+      defaultUserIdentity: ${SHIPMENT_EVENT_USER}
+      acknowledgmentPolicy:
+        mode: on_completion
+        timeoutSeconds: 120
+        onFailure:
+          action: nack
+          nackOutcome: rejected
+      # The workflow republishes the enriched event itself with publish_event.
+      successOutput:
+        enabled: false
+        topic: northwind/tms/shipment/enriched/v1
+        topicType: static
+        responseType: structured
+      errorOutput:
+        enabled: true
+        topic: northwind/tms/shipment/enrichment-failed/v1
+        topicType: static
+        responseType: error

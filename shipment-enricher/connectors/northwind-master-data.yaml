@@ -1,0 +1,12 @@
+kind: connector
+name: northwind-master-data
+description: "Mock master data REST API of Northwind Freight: getCustomer returns customer master data for a customer number, getCarrier returns carrier master data for a carrier code. Used by the ShipmentEnricher workflow."
+spec:
+  type: api
+  subtype: openapi
+  values:
+    base_url: ${MASTER_DATA_BASE_URL}
+    # The spec travels with the project: the platform cannot fetch it from a
+    # loopback address, and a workflow tool node needs the tool names at deploy time.
+    specification_file: ../openapi/northwind-master-data.json
+    auth_type: none

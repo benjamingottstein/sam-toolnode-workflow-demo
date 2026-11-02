@@ -1,0 +1,9 @@
+# local settings - never commit real broker credentials
+.env
+# build output of the Go tool packages
+dist/
+.sam-cache/
+# macOS
+.DS_Store
+# the tool SDK is vendored locally by "sam toolset sync"
+_sdk/

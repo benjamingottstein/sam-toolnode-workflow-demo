@@ -1,0 +1,8 @@
+kind: toolset
+name: sap-event-tools
+description: "Deterministic (non-LLM) tools for SAP events: validate_json checks a JSON object against a JSON Schema, strip_fields removes dot-path properties, publish_event publishes a JSON object to a Solace topic via the broker's REST messaging API."
+spec:
+  config:
+    rest_url: ${SAP_BROKER_REST_URL}
+    username: ${SAP_BROKER_USERNAME}
+    password: ${SAP_BROKER_PASSWORD}

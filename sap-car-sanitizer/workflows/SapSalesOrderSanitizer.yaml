@@ -1,0 +1,218 @@
+kind: workflow
+name: SapSalesOrderSanitizer
+description: Validates an SAP CAR sales order event, removes customer PII (email address, loyalty card number), validates the result and republishes it on the mesh - four deterministic tool nodes, no LLM.
+spec:
+  appConfig:
+    workflow_timeout: 1m
+    default_node_timeout: 30s
+    fail_fast: true
+    description: Validates an SAP CAR sales order event, removes customer PII, validates the result and republishes it - no LLM.
+    toolsets:
+    - sap-event-tools
+    # SAM does not enforce input_schema/output_schema for tool-only workflows,
+    # so the validate_input / validate_output nodes apply them explicitly.
+    # The &anchors let those nodes reuse these exact schemas.
+    input_schema: &sales_order_created
+      type: object
+      required: [specversion, type, source, id, time, data]
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+        type:
+          type: string
+          pattern: ^sap\.car\.omnichannel\.SalesOrder\.
+        source:
+          type: string
+        id:
+          type: string
+        time:
+          type: string
+        datacontenttype:
+          type: string
+        data:
+          type: object
+          required: [SalesOrder, SalesOrganization, TransactionCurrency, TotalNetAmount, Items]
+          properties:
+            SalesOrder:
+              type: string
+              pattern: ^[0-9]{10}$
+            SalesOrderType:
+              type: string
+            SalesOrganization:
+              type: string
+            DistributionChannel:
+              type: string
+            OrganizationDivision:
+              type: string
+            SalesChannel:
+              type: string
+            RetailStore:
+              type: string
+            SoldToParty:
+              type: string
+            CustomerEmailAddress:
+              type: string
+            LoyaltyCardNumber:
+              type: string
+            CreationDateTime:
+              type: string
+            TransactionCurrency:
+              type: string
+              pattern: ^[A-Z]{3}$
+            TotalNetAmount:
+              type: number
+            TotalTaxAmount:
+              type: number
+            Items:
+              type: array
+              minItems: 1
+              items:
+                type: object
+                required: [SalesOrderItem, Material, RequestedQuantity, NetAmount]
+                properties:
+                  SalesOrderItem:
+                    type: string
+                  Material:
+                    type: string
+                  MaterialDescription:
+                    type: string
+                  RequestedQuantity:
+                    type: number
+                  RequestedQuantityUnit:
+                    type: string
+                  NetAmount:
+                    type: number
+    # The output contract is an allowlist: data may only carry the listed
+    # properties, so an event that still holds CustomerEmailAddress or
+    # LoyaltyCardNumber fails validation instead of being republished.
+    output_schema: &sales_order_sanitized
+      type: object
+      required: [specversion, type, source, id, time, data]
+      properties:
+        specversion:
+          type: string
+        type:
+          type: string
+        source:
+          type: string
+        id:
+          type: string
+        time:
+          type: string
+        datacontenttype:
+          type: string
+        data:
+          type: object
+          additionalProperties: false
+          required: [SalesOrder, SalesOrganization, TransactionCurrency, TotalNetAmount, Items]
+          properties:
+            SalesOrder:
+              type: string
+            SalesOrderType:
+              type: string
+            SalesOrganization:
+              type: string
+            DistributionChannel:
+              type: string
+            OrganizationDivision:
+              type: string
+            SalesChannel:
+              type: string
+            RetailStore:
+              type: string
+            SoldToParty:
+              type: string
+            CreationDateTime:
+              type: string
+            TransactionCurrency:
+              type: string
+            TotalNetAmount:
+              type: number
+            TotalTaxAmount:
+              type: number
+            Items:
+              type: array
+              items:
+                type: object
+    nodes:
+    - id: validate_input
+      type: tool
+      tool_name: sap-event-tools__validate_json
+      input:
+        label: input
+        # The Event Mesh entrypoint delivers the event as {"text": "<json>"};
+        # the tool parses that string. Direct structured calls pass the object.
+        document:
+          coalesce:
+          - '{{workflow.input.text}}'
+          - '{{workflow.input}}'
+        schema: *sales_order_created
+    # if input is valid -> strip_pii, else -> reject_input
+    - id: input_valid
+      type: switch
+      depends_on: [validate_input]
+      cases:
+      - condition: "'{{validate_input.output.status}}' == 'valid'"
+        node: strip_pii
+      default: reject_input
+    - id: strip_pii
+      type: tool
+      tool_name: sap-event-tools__strip_fields
+      depends_on: [input_valid]
+      input:
+        event: '{{validate_input.output.document}}'
+        fields:
+        - data.CustomerEmailAddress
+        - data.LoyaltyCardNumber
+    - id: validate_output
+      type: tool
+      tool_name: sap-event-tools__validate_json
+      depends_on: [strip_pii]
+      input:
+        label: output
+        document: '{{strip_pii.output.sanitizedEvent}}'
+        schema: *sales_order_sanitized
+    # if output is valid -> republish, else -> reject_output
+    - id: output_valid
+      type: switch
+      depends_on: [validate_output]
+      cases:
+      - condition: "'{{validate_output.output.status}}' == 'valid'"
+        node: republish
+      default: reject_output
+    - id: republish
+      type: tool
+      tool_name: sap-event-tools__publish_event
+      depends_on: [output_valid]
+      input:
+        topic: 'sap/car/salesorder/sanitized/v1/{{validate_output.output.document.data.SalesOrganization}}/{{validate_output.output.document.data.SalesOrder}}'
+        event: '{{validate_output.output.document}}'
+    - id: reject_input
+      type: tool
+      tool_name: sap-event-tools__publish_event
+      depends_on: [input_valid]
+      input:
+        topic: sap/car/salesorder/rejected/v1
+        event:
+          step: validate_input
+          reason: '{{validate_input.output.reason}}'
+          originalEvent: '{{validate_input.output.document}}'
+    - id: reject_output
+      type: tool
+      tool_name: sap-event-tools__publish_event
+      depends_on: [output_valid]
+      input:
+        topic: sap/car/salesorder/rejected/v1
+        event:
+          step: validate_output
+          reason: '{{validate_output.output.reason}}'
+          originalEvent: '{{validate_input.output.document}}'
+    output_mapping:
+      specversion: '{{validate_output.output.document.specversion}}'
+      type: '{{validate_output.output.document.type}}'
+      source: '{{validate_output.output.document.source}}'
+      id: '{{validate_output.output.document.id}}'
+      time: '{{validate_output.output.document.time}}'
+      datacontenttype: '{{validate_output.output.document.datacontenttype}}'
+      data: '{{validate_output.output.document.data}}'

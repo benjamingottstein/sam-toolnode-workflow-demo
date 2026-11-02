@@ -1,0 +1,81 @@
+kind: workflow
+name: TradeSettlementCorrelator
+description: Collects TradeExecuted, TradeConfirmed and TradeAllocated events per tradeId in Postgres and publishes one TradeReadyForSettlement event once all three have arrived - deterministic tool nodes, no LLM.
+spec:
+  appConfig:
+    workflow_timeout: 1m
+    default_node_timeout: 30s
+    fail_fast: true
+    description: Correlates three trade lifecycle events per tradeId (stateful, Postgres) and publishes TradeReadyForSettlement once all three are in - no LLM.
+    toolsets:
+    - trade-tools
+    input_schema:
+      type: object
+      required: [tradeId, eventType]
+      properties:
+        tradeId:
+          type: string
+        eventType:
+          type: string
+          enum: [TradeExecuted, TradeConfirmed, TradeAllocated]
+    nodes:
+    # 1. Store the event. A duplicate (same tradeId + eventType) is ignored
+    #    via the primary key; unknown event types are not stored.
+    - id: store_event
+      type: tool
+      tool_name: trade-tools__sql
+      input:
+        statement: |
+          WITH ev AS (SELECT @event::jsonb AS e),
+               new_trade AS (INSERT INTO trades (trade_id) SELECT e->>'tradeId' FROM ev ON CONFLICT DO NOTHING)
+          INSERT INTO trade_events (trade_id, event_type, payload)
+          SELECT e->>'tradeId', e->>'eventType', e FROM ev
+          WHERE e->>'eventType' IN ('TradeExecuted', 'TradeConfirmed', 'TradeAllocated')
+          ON CONFLICT DO NOTHING
+        args:
+          # The Event Mesh entrypoint delivers the event as {"text": "<json>"}.
+          event:
+            coalesce:
+            - '{{workflow.input.text}}'
+            - '{{workflow.input}}'
+    # 2. Mark the trade ready - only if all 3 events are stored and it was not
+    #    marked before. The UPDATE is atomic, so when events arrive at the same
+    #    time exactly one run gets a row back. That row is event 4.
+    - id: check_complete
+      type: tool
+      tool_name: trade-tools__sql
+      depends_on: [store_event]
+      input:
+        statement: |
+          UPDATE trades t SET ready_at = now()
+          WHERE t.trade_id = @event::jsonb->>'tradeId'
+            AND t.ready_at IS NULL
+            AND (SELECT count(*) FROM trade_events e WHERE e.trade_id = t.trade_id) = 3
+          RETURNING t.trade_id, jsonb_build_object(
+            'eventType', 'TradeReadyForSettlement',
+            'tradeId',   t.trade_id,
+            'readyAt',   t.ready_at,
+            'events',    (SELECT jsonb_object_agg(event_type, payload) FROM trade_events e WHERE e.trade_id = t.trade_id)
+          ) AS event
+        args:
+          event:
+            coalesce:
+            - '{{workflow.input.text}}'
+            - '{{workflow.input}}'
+    # 3. if all three events are in -> publish event 4, otherwise the run ends
+    - id: all_events_in
+      type: switch
+      depends_on: [check_complete]
+      cases:
+      - condition: "{{check_complete.output.rowCount}} == 1"
+        node: publish_ready
+    - id: publish_ready
+      type: tool
+      tool_name: trade-tools__publish_event
+      depends_on: [all_events_in]
+      input:
+        topic: 'trade/settlement/ready/v1/{{check_complete.output.row.trade_id}}'
+        event: '{{check_complete.output.row.event}}'
+    output_mapping:
+      stored: '{{store_event.output.rowCount}}'
+      completed: '{{check_complete.output.rowCount}}'

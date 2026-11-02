@@ -1,0 +1,6 @@
+version: 1
+tools:
+  sap_event_tools_tools:
+    runtime: go
+    executable: ./sap-event-tools
+    timeout_seconds: 60

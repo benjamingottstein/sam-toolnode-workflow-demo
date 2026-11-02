@@ -1,0 +1,9 @@
+kind: toolset
+name: trade-tools
+description: "Deterministic (non-LLM) tools for trade event correlation: sql executes one SQL statement with named @arguments against Postgres, publish_event publishes a JSON object to a Solace topic via the broker's REST messaging API."
+spec:
+  config:
+    dsn: ${TRADE_PG_DSN}
+    rest_url: ${TRADE_BROKER_REST_URL}
+    username: ${TRADE_BROKER_USERNAME}
+    password: ${TRADE_BROKER_PASSWORD}

@@ -1,0 +1,155 @@
+{
+    "openapi": "3.0.3",
+    "info": {
+        "title": "Northwind Master Data API (mock)",
+        "version": "1.0.0",
+        "description": "Customer and carrier master data used to enrich shipment events."
+    },
+    "servers": [
+        {
+            "url": "http://127.0.0.1:8099"
+        }
+    ],
+    "paths": {
+        "/customers/{customerId}": {
+            "get": {
+                "operationId": "getCustomer",
+                "summary": "Customer master data for a customer number",
+                "parameters": [
+                    {
+                        "name": "customerId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Customer number, e.g. C-10045"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Customer record",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "customerId": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "country": {
+                                            "type": "string"
+                                        },
+                                        "serviceLevel": {
+                                            "type": "string"
+                                        },
+                                        "incoterms": {
+                                            "type": "string"
+                                        },
+                                        "paymentTerms": {
+                                            "type": "string"
+                                        },
+                                        "creditStatus": {
+                                            "type": "string"
+                                        },
+                                        "accountManager": {
+                                            "type": "object",
+                                            "properties": {
+                                                "name": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown customer"
+                    }
+                }
+            }
+        },
+        "/carriers/{carrierCode}": {
+            "get": {
+                "operationId": "getCarrier",
+                "summary": "Carrier master data for a carrier code",
+                "parameters": [
+                    {
+                        "name": "carrierCode",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "Carrier code, e.g. NWX"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Carrier record",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "carrierCode": {
+                                            "type": "string"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "mode": {
+                                            "type": "string"
+                                        },
+                                        "scac": {
+                                            "type": "string"
+                                        },
+                                        "onTimePercent": {
+                                            "type": "number"
+                                        },
+                                        "co2GramsPerTonneKm": {
+                                            "type": "number"
+                                        },
+                                        "dispatchContact": {
+                                            "type": "object",
+                                            "properties": {
+                                                "phone": {
+                                                    "type": "string"
+                                                },
+                                                "email": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Unknown carrier"
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "operationId": "health",
+                "summary": "Health check",
+                "responses": {
+                    "200": {
+                        "description": "ok"
+                    }
+                }
+            }
+        }
+    }
+}

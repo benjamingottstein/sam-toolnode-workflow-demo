@@ -1,0 +1,39 @@
+kind: entrypoint
+name: SapCarEvents
+description: Subscribes to SAP CAR sales order created events, runs SapSalesOrderSanitizer and republishes the sanitized event - or the rejection - on the mesh.
+spec:
+  type: event_mesh
+  deploy: true
+  values:
+    broker_url: ${SAP_BROKER_URL}
+    broker_vpn: ${SAP_BROKER_VPN}
+    broker_username: ${SAP_BROKER_USERNAME}
+    broker_password: ${SAP_BROKER_PASSWORD}
+    tls_skip_verify: 'false'
+    event_rules:
+    - name: sales_order_created
+      subscriptions:
+      - topic: sap/car/salesorder/created/v1/>
+      messageFormat: json
+      targetWorkflowName: SapSalesOrderSanitizer
+      inputExpression: "input.payload"
+      defaultUserIdentity: ${SAP_EVENT_USER}
+      acknowledgmentPolicy:
+        mode: on_completion
+        timeoutSeconds: 120
+        onFailure:
+          action: nack
+          nackOutcome: rejected
+      # Disabled: the workflow republishes the validated event itself with its
+      # publish_event tool node (responseType: structured publishes a null body
+      # for workflow targets on this SAM version).
+      successOutput:
+        enabled: false
+        topic: sap/car/salesorder/sanitized/v1
+        topicType: static
+        responseType: structured
+      errorOutput:
+        enabled: true
+        topic: sap/car/salesorder/rejected/v1
+        topicType: static
+        responseType: error

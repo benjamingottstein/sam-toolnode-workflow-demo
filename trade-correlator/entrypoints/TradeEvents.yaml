@@ -1,0 +1,39 @@
+kind: entrypoint
+name: TradeEvents
+description: Subscribes to the three trade lifecycle events and runs TradeSettlementCorrelator for each of them.
+spec:
+  type: event_mesh
+  deploy: true
+  values:
+    broker_url: ${TRADE_BROKER_URL}
+    broker_vpn: ${TRADE_BROKER_VPN}
+    broker_username: ${TRADE_BROKER_USERNAME}
+    broker_password: ${TRADE_BROKER_PASSWORD}
+    tls_skip_verify: 'false'
+    event_rules:
+    - name: trade_lifecycle
+      subscriptions:
+      - topic: trade/executed/v1/>
+      - topic: trade/confirmed/v1/>
+      - topic: trade/allocated/v1/>
+      messageFormat: json
+      targetWorkflowName: TradeSettlementCorrelator
+      inputExpression: "input.payload"
+      defaultUserIdentity: ${TRADE_EVENT_USER}
+      acknowledgmentPolicy:
+        mode: on_completion
+        timeoutSeconds: 120
+        onFailure:
+          action: nack
+          nackOutcome: rejected
+      # The workflow publishes TradeReadyForSettlement itself (publish_ready).
+      successOutput:
+        enabled: false
+        topic: trade/settlement/ready/v1
+        topicType: static
+        responseType: structured
+      errorOutput:
+        enabled: true
+        topic: trade/settlement/error/v1
+        topicType: static
+        responseType: error

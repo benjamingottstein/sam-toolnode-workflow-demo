@@ -1,0 +1,42 @@
+{
+  "specversion": "1.0",
+  "type": "sap.car.omnichannel.SalesOrder.Created.v1",
+  "source": "/default/sap.car/CARCLNT100",
+  "id": "6c0f4b2e-3a8d-4e0b-9d71-2f5a9c1e7b44",
+  "time": "2026-09-28T09:15:42Z",
+  "datacontenttype": "application/json",
+  "data": {
+    "SalesOrder": "0000481516",
+    "SalesOrderType": "OR",
+    "SalesOrganization": "1010",
+    "DistributionChannel": "10",
+    "OrganizationDivision": "00",
+    "SalesChannel": "ONLINE",
+    "RetailStore": "R100",
+    "SoldToParty": "0010023456",
+    "CustomerEmailAddress": "anna.schmidt@example.com",
+    "LoyaltyCardNumber": "4711-8850-2231",
+    "CreationDateTime": "2026-09-28T09:15:40Z",
+    "TransactionCurrency": "EUR",
+    "TotalNetAmount": 149.97,
+    "TotalTaxAmount": 28.49,
+    "Items": [
+      {
+        "SalesOrderItem": "000010",
+        "Material": "MAT-100234",
+        "MaterialDescription": "Trail running shoe",
+        "RequestedQuantity": 1,
+        "RequestedQuantityUnit": "PC",
+        "NetAmount": 119.99
+      },
+      {
+        "SalesOrderItem": "000020",
+        "Material": "MAT-200871",
+        "MaterialDescription": "Merino running socks",
+        "RequestedQuantity": 2,
+        "RequestedQuantityUnit": "PC",
+        "NetAmount": 29.98
+      }
+    ]
+  }
+}

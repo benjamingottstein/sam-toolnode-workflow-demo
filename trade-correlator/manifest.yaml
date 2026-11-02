@@ -1,0 +1,12 @@
+kind: manifest
+name: Trade-Settlement-Correlator
+description: Correlates three trade lifecycle events per tradeId in Postgres and publishes TradeReadyForSettlement once all three have arrived.
+target:
+  name: desktop
+resources:
+  toolsets:
+  - trade-tools
+  workflows:
+  - TradeSettlementCorrelator
+  entrypoints:
+  - TradeEvents

@@ -1,0 +1,13 @@
+kind: manifest
+name: SAP-CAR-Sales-Order-Sanitizer
+description: Strips customer PII from SAP CAR sales order events with a deterministic tool node and republishes the sanitized event on the mesh.
+target:
+  name: desktop
+resources:
+  toolsets:
+  - sap-event-tools
+  workflows:
+  - SapSalesOrderSanitizer
+  entrypoints:
+  - SapCarEvents
+  - SapCarWebhook

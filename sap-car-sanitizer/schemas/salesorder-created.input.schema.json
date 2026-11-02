@@ -1,0 +1,122 @@
+{
+  "type": "object",
+  "required": [
+    "specversion",
+    "type",
+    "source",
+    "id",
+    "time",
+    "data"
+  ],
+  "properties": {
+    "specversion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "type": {
+      "type": "string",
+      "pattern": "^sap\\.car\\.omnichannel\\.SalesOrder\\."
+    },
+    "source": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "time": {
+      "type": "string"
+    },
+    "datacontenttype": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "SalesOrder",
+        "SalesOrganization",
+        "TransactionCurrency",
+        "TotalNetAmount",
+        "Items"
+      ],
+      "properties": {
+        "SalesOrder": {
+          "type": "string",
+          "pattern": "^[0-9]{10}$"
+        },
+        "SalesOrderType": {
+          "type": "string"
+        },
+        "SalesOrganization": {
+          "type": "string"
+        },
+        "DistributionChannel": {
+          "type": "string"
+        },
+        "OrganizationDivision": {
+          "type": "string"
+        },
+        "SalesChannel": {
+          "type": "string"
+        },
+        "RetailStore": {
+          "type": "string"
+        },
+        "SoldToParty": {
+          "type": "string"
+        },
+        "CustomerEmailAddress": {
+          "type": "string"
+        },
+        "LoyaltyCardNumber": {
+          "type": "string"
+        },
+        "CreationDateTime": {
+          "type": "string"
+        },
+        "TransactionCurrency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
+        "TotalNetAmount": {
+          "type": "number"
+        },
+        "TotalTaxAmount": {
+          "type": "number"
+        },
+        "Items": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "SalesOrderItem",
+              "Material",
+              "RequestedQuantity",
+              "NetAmount"
+            ],
+            "properties": {
+              "SalesOrderItem": {
+                "type": "string"
+              },
+              "Material": {
+                "type": "string"
+              },
+              "MaterialDescription": {
+                "type": "string"
+              },
+              "RequestedQuantity": {
+                "type": "number"
+              },
+              "RequestedQuantityUnit": {
+                "type": "string"
+              },
+              "NetAmount": {
+                "type": "number"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

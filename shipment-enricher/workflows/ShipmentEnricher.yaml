@@ -1,0 +1,150 @@
+kind: workflow
+name: ShipmentEnricher
+description: Validates a shipment created event, fetches customer and carrier master data from the Northwind master data REST API and republishes the enriched event on the mesh - deterministic tool nodes, no LLM.
+spec:
+  appConfig:
+    workflow_timeout: 1m
+    default_node_timeout: 30s
+    fail_fast: true
+    version: "1.0.3"
+    description: Enriches a shipment event with customer and carrier master data and republishes it - no LLM.
+    toolsets:
+    - sap-event-tools
+    input_schema: &shipment_created
+      type: object
+      required: [specversion, type, source, id, time, data]
+      properties:
+        specversion:
+          type: string
+          const: "1.0"
+        type:
+          type: string
+          pattern: ^northwind\.tms\.Shipment\.
+        source:
+          type: string
+        id:
+          type: string
+        time:
+          type: string
+        datacontenttype:
+          type: string
+        data:
+          type: object
+          required: [shipmentId, siteId, customerId, carrierCode, origin, destination]
+          properties:
+            shipmentId:
+              type: string
+              pattern: ^SHP-[0-9]{6}$
+            siteId:
+              type: string
+            customerId:
+              type: string
+              pattern: ^C-[0-9]{5}$
+            carrierCode:
+              type: string
+            origin:
+              type: string
+            destination:
+              type: string
+            pieces:
+              type: number
+            grossWeightKg:
+              type: number
+            plannedPickup:
+              type: string
+            plannedDelivery:
+              type: string
+    nodes:
+    # 1 - the event must match the input contract before anything else happens
+    - id: validate_input
+      type: tool
+      tool_name: sap-event-tools__validate_json
+      input:
+        label: input
+        # The Event Mesh entrypoint delivers the event as {"text": "<json>"};
+        # a direct structured call passes the object itself.
+        document:
+          coalesce:
+          - '{{workflow.input.text}}'
+          - '{{workflow.input}}'
+        schema: *shipment_created
+    - id: input_valid
+      type: switch
+      depends_on: [validate_input]
+      cases:
+      - condition: "'{{validate_input.output.status}}' == 'valid'"
+        node: fetch_customer
+      default: reject_input
+    # 2 - master data lookups against the mock REST API (one tool per operation)
+    - id: fetch_customer
+      type: tool
+      connector: northwind-master-data
+      tool: get_customer
+      depends_on: [input_valid]
+      input:
+        customer_id: '{{validate_input.output.document.data.customerId}}'
+    - id: fetch_carrier
+      type: tool
+      connector: northwind-master-data
+      tool: get_carrier
+      depends_on: [fetch_customer]
+      input:
+        carrier_code: '{{validate_input.output.document.data.carrierCode}}'
+    # 3 - republish the enriched event on the mesh
+    - id: publish_enriched
+      type: tool
+      tool_name: sap-event-tools__publish_event
+      depends_on: [fetch_carrier]
+      input:
+        topic: 'northwind/tms/shipment/enriched/v1/{{validate_input.output.document.data.siteId}}/{{validate_input.output.document.data.shipmentId}}'
+        event:
+          specversion: '{{validate_input.output.document.specversion}}'
+          type: northwind.tms.Shipment.Enriched.v1
+          source: '{{validate_input.output.document.source}}'
+          id: '{{validate_input.output.document.id}}'
+          time: '{{validate_input.output.document.time}}'
+          datacontenttype: application/json
+          data:
+            shipmentId: '{{validate_input.output.document.data.shipmentId}}'
+            siteId: '{{validate_input.output.document.data.siteId}}'
+            origin: '{{validate_input.output.document.data.origin}}'
+            destination: '{{validate_input.output.document.data.destination}}'
+            pieces: '{{validate_input.output.document.data.pieces}}'
+            grossWeightKg: '{{validate_input.output.document.data.grossWeightKg}}'
+            plannedPickup: '{{validate_input.output.document.data.plannedPickup}}'
+            plannedDelivery: '{{validate_input.output.document.data.plannedDelivery}}'
+            customer:
+              customerId: '{{fetch_customer.output.customerId}}'
+              name: '{{fetch_customer.output.name}}'
+              country: '{{fetch_customer.output.country}}'
+              serviceLevel: '{{fetch_customer.output.serviceLevel}}'
+              incoterms: '{{fetch_customer.output.incoterms}}'
+              paymentTerms: '{{fetch_customer.output.paymentTerms}}'
+              creditStatus: '{{fetch_customer.output.creditStatus}}'
+              accountManager: '{{fetch_customer.output.accountManager}}'
+            carrier:
+              carrierCode: '{{fetch_carrier.output.carrierCode}}'
+              name: '{{fetch_carrier.output.name}}'
+              mode: '{{fetch_carrier.output.mode}}'
+              scac: '{{fetch_carrier.output.scac}}'
+              onTimePercent: '{{fetch_carrier.output.onTimePercent}}'
+              co2GramsPerTonneKm: '{{fetch_carrier.output.co2GramsPerTonneKm}}'
+              dispatchContact: '{{fetch_carrier.output.dispatchContact}}'
+    - id: reject_input
+      type: tool
+      tool_name: sap-event-tools__publish_event
+      depends_on: [input_valid]
+      input:
+        topic: northwind/tms/shipment/enrichment-failed/v1
+        event:
+          step: validate_input
+          reason: '{{validate_input.output.reason}}'
+          originalEvent: '{{validate_input.output.document}}'
+    output_mapping:
+      shipmentId: '{{validate_input.output.document.data.shipmentId}}'
+      customer: '{{fetch_customer.output}}'
+      carrier: '{{fetch_carrier.output}}'
+      published:
+        coalesce:
+        - '{{publish_enriched.output.topic}}'
+        - 'not published'

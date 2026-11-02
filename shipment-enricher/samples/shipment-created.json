@@ -1,0 +1,20 @@
+{
+  "specversion": "1.0",
+  "type": "northwind.tms.Shipment.Created.v1",
+  "source": "/northwind/tms/hamburg",
+  "id": "9f1c7a52-0d4e-4a7f-9a1c-0b3f7c2e9d11",
+  "time": "2026-10-13T08:15:00Z",
+  "datacontenttype": "application/json",
+  "data": {
+    "shipmentId": "SHP-884120",
+    "siteId": "HAM",
+    "customerId": "C-10233",
+    "carrierCode": "NWX",
+    "origin": "Hamburg, DE",
+    "destination": "Gothenburg, SE",
+    "pieces": 18,
+    "grossWeightKg": 7450,
+    "plannedPickup": "2026-10-14T06:00:00Z",
+    "plannedDelivery": "2026-10-16T14:00:00Z"
+  }
+}

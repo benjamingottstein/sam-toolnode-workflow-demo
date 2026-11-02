@@ -1,0 +1,86 @@
+{
+  "type": "object",
+  "required": [
+    "specversion",
+    "type",
+    "source",
+    "id",
+    "time",
+    "data"
+  ],
+  "properties": {
+    "specversion": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "id": {
+      "type": "string"
+    },
+    "time": {
+      "type": "string"
+    },
+    "datacontenttype": {
+      "type": "string"
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "SalesOrder",
+        "SalesOrganization",
+        "TransactionCurrency",
+        "TotalNetAmount",
+        "Items"
+      ],
+      "properties": {
+        "SalesOrder": {
+          "type": "string"
+        },
+        "SalesOrderType": {
+          "type": "string"
+        },
+        "SalesOrganization": {
+          "type": "string"
+        },
+        "DistributionChannel": {
+          "type": "string"
+        },
+        "OrganizationDivision": {
+          "type": "string"
+        },
+        "SalesChannel": {
+          "type": "string"
+        },
+        "RetailStore": {
+          "type": "string"
+        },
+        "SoldToParty": {
+          "type": "string"
+        },
+        "CreationDateTime": {
+          "type": "string"
+        },
+        "TransactionCurrency": {
+          "type": "string"
+        },
+        "TotalNetAmount": {
+          "type": "number"
+        },
+        "TotalTaxAmount": {
+          "type": "number"
+        },
+        "Items": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  }
+}

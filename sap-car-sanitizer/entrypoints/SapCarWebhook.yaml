@@ -1,0 +1,17 @@
+kind: entrypoint
+name: SapCarWebhook
+description: Accepts SAP CAR sales order events over HTTP and runs SapSalesOrderSanitizer - same workflow as the Event Mesh entrypoint.
+spec:
+  type: webhook
+  slug: sap-car
+  deploy: true
+  values:
+    # POST http://127.0.0.1:8800/gw/sap-car/salesorder
+    # Header: Authorization: Bearer ${SAP_WEBHOOK_TOKEN}
+    # Returns 202; the workflow publishes the result on the mesh.
+    routePath: /salesorder
+    method: POST
+    authMode: token
+    authToken: ${SAP_WEBHOOK_TOKEN}
+    inputExpression: "input.payload:"
+    targetWorkflowName: SapSalesOrderSanitizer

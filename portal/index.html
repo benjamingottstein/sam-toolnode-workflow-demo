@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SAM Tool Node Workflow Demos</title>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { --green:#00c895; --deep:#093b5f; --dark:#03213b; --gray:#f4f4f4; --line:#d6d6d6;
+          font: 15px/1.55 "Figtree","Segoe UI",Arial,sans-serif; color: var(--dark); background: var(--gray); }
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  header { background: var(--dark); color: #fff; padding: 20px 5vw; display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; }
+  header span { color: var(--green); font: 700 .72rem "Space Mono",monospace; letter-spacing: .05em; text-transform: uppercase; }
+  header h1 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+  main { max-width: 1100px; margin: auto; padding: 28px 5vw 48px; }
+  p.lead { max-width: 70ch; }
+  .cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-top: 22px; }
+  a.card { display: block; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px;
+           text-decoration: none; color: inherit; transition: border-color .15s; }
+  a.card:hover { border-color: var(--green); }
+  a.card b { display: block; font-size: 1.05rem; margin-bottom: 6px; }
+  a.card span { font-size: .9rem; color: var(--deep); }
+  code { font: .82rem "Space Mono",monospace; background: #eaeaea; padding: 2px 6px; border-radius: 4px; }
+  .note { margin-top: 26px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; }
+  .note h2 { font-size: .95rem; margin: 0 0 8px; }
+  ol { margin: 0; padding-left: 20px; }
+</style>
+</head>
+<body>
+<header><span>Solace Agent Mesh</span><h1>Tool node workflow demos</h1></header>
+<main>
+  <p class="lead">Three event-driven workflows that run entirely on deterministic tool steps &mdash; no AI model involved,
+  so each run takes a fraction of a second and costs nothing. Every portal below publishes an event to your broker and
+  shows the event the workflow publishes back.</p>
+
+  <div class="cards">
+    <a class="card" href="../sap-car-sanitizer/console/index.html">
+      <b>Sales order sanitizer</b>
+      <span>Removes personal data from a sales order event, validates the result against a contract and republishes it.</span>
+    </a>
+    <a class="card" href="../shipment-enricher/console/index.html">
+      <b>Shipment enricher</b>
+      <span>Looks up customer and carrier master data over a REST API and republishes the enriched shipment event.</span>
+    </a>
+    <a class="card" href="../trade-correlator/console/index.html">
+      <b>Trade settlement correlator</b>
+      <span>Collects three trade events that can arrive in any order and publishes one settlement event when all are in.</span>
+    </a>
+  </div>
+
+  <div class="note">
+    <h2>Before you start</h2>
+    <ol>
+      <li>Copy each <code>.env.example</code> to <code>.env</code> and enter your broker details.</li>
+      <li>Deploy a demo: <code>cd &lt;demo&gt; &amp;&amp; sam config apply --target desktop --env-file .env -m manifest.yaml</code></li>
+      <li>Open a portal above, press <b>Connect</b>, enter the same broker details, then publish an event.</li>
+    </ol>
+  </div>
+</main>
+</body>
+</html>
